@@ -67,7 +67,7 @@ def redownload(filename, webroot, checksums):
             print("{0:.2f}% ({1}) of {2}       ".format((done / tot) * 100, sizeof_fmt(done), sizeof_fmt(tot)), end="\r")
     return checksums[filename] == md5sum(os.path.join(ROOT, filename))
 
-def get_files(webroot, checksums, dryrun=False):
+def get_files(webroot, checksums, dryrun=False, quieter=False):
     """ Searches the YandereSim directory for files that are missing or invalid
         compared to the provided checksum dict, and redownloads them from the
         given CDN """
@@ -85,20 +85,20 @@ def get_files(webroot, checksums, dryrun=False):
             else:
                 print("Downloaded {}".format(filename))
         else:
-            print("File exists and is verified: {}".format(filename))
-    else:
-        print("Unknown file: {}".format(filename))
+            if not quieter:
+                print("File exists and is verified: {}".format(filename))
     return not ERROR
 
 def main():
     parser = ArgumentParser(prog="YandereLauncher")
     parser.add_argument("--cdn", help="Supply alternate CDN, with trailing slash")
     parser.add_argument("--dryrun", help="Test functionality without doing anything to the filesystem", action="store_true")
+    parser.add_argument("--quieter", help="Skip messages when files already exist and verify successfully", action="store_true")
     args = parser.parse_args()
     if args.cdn:
         global CDN
         CDN = args.cdn
-    if get_files(*get_checksums(), dryrun=args.dryrun):
+    if get_files(*get_checksums(), dryrun=args.dryrun, quieter=args.quieter):
         return 0
     else:
         return 1
