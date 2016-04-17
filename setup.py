@@ -6,17 +6,17 @@ with open("README.rst", "rb") as f:
 setup(
     name = "yanderelauncher",
     packages = ["yanderelauncher"],
-    install_requires = [],
+    install_requires = ["requests"],
     entry_points = {
         "console_scripts": ['yanderelauncher = yanderelauncher.yanderelauncher:main']
         },
-    version = "1.0.0",
+    version = "0.0.3",
     description = "Utilizes a checksum system to download and verify files for Yandere Simulator",
     long_description = long_descr,
     author = "Steven Smith",
     author_email = "stevensmith.ome@gmail.com",
     license = "MIT",
-    url = "https://blha303.github.io/yanderelauncher/",
+    url = "https://github.com/blha303/yanderelauncher",
     classifiers = [
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",

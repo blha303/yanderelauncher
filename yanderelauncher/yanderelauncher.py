@@ -8,6 +8,9 @@ from argparse import ArgumentParser
 from os import getcwd, sep, walk, makedirs
 import os.path
 
+__author__ = "blha303 <stevensmith.ome@gmail.com>"
+__version__ = "0.0.3"
+
 def mkdir(path):
     try:
         makedirs(os.path.dirname(path))
@@ -73,8 +76,7 @@ def get_files(webroot, checksums, dryrun=False, quieter=False):
         given CDN """
     ERROR = False
     for filename, checksum in checksums.items():
-        if filename == "checksums.json":
-            # Shouldn't happen, but a catch for if it does
+        if "checksums.json" in filename or "output_log.txt" in filename:
             continue
         if checksum != md5sum(os.path.join(ROOT, filename)):
             if dryrun:
@@ -94,7 +96,11 @@ def main():
     parser.add_argument("--cdn", help="Supply alternate CDN, with trailing slash")
     parser.add_argument("--dryrun", help="Test functionality without doing anything to the filesystem", action="store_true")
     parser.add_argument("--quieter", help="Skip messages when files already exist and verify successfully", action="store_true")
+    parser.add_argument("--version", help="Print version and exit", action="store_true")
     args = parser.parse_args()
+    if args.version:
+        print(__version__)
+        return 0
     if args.cdn:
         global CDN
         CDN = args.cdn
