@@ -1,4 +1,5 @@
-YandereSim/
+!YandereSim.ico
+YandereSim*
 __pycache__
 *.pyc
 build/
