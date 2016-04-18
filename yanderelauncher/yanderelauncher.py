@@ -9,7 +9,7 @@ from os import getcwd, sep, walk, makedirs, unlink
 import os.path
 
 __author__ = "blha303 <stevensmith.ome@gmail.com>"
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 
 CDN = "https://yandere.b303.me/"
 ROOT = getcwd()
@@ -25,6 +25,8 @@ def download(url, dest, attempt=1, checksum=None):
         done = 0
     try:
         r = requests.get(url, stream=True, headers={"Range": "bytes={}-".format(str(done))}, timeout=(10.0, 1.0))
+        if r.status_code is 416:
+            return
         if r.headers.get("Content-Range"):
             done = int(r.headers.get("Content-Range").split()[1].split("-")[0])
             total = int(r.headers.get("Content-Range").split("/")[1])
@@ -93,7 +95,7 @@ def get_latest_zip(extract=True):
         checksum, filename = requests.get(CDN + "latest-checksum").text.strip().split(maxsplit=1)
         download(CDN + filename, filename)
         if checksum != md5sum(filename):
-            print("Package did not download successfully")
+            print("Package did not download successfully", file=stderr)
             return False
         if extract:
             if DRYRUN:
