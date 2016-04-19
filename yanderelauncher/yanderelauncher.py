@@ -5,15 +5,21 @@ from hashlib import md5
 from sys import exit, stderr, stdout
 from argparse import ArgumentParser
 from zipfile import ZipFile
+from traceback import format_exc
+from shutil import rmtree
+from tempfile import NamedTemporaryFile
+from time import ctime
 from os import getcwd, sep, walk, makedirs, unlink
 import os.path
 
 __author__ = "blha303 <stevensmith.ome@gmail.com>"
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 
 CDN = "https://yandere.b303.me/"
 ROOT = getcwd()
 DRYRUN = False
+VERBOSE = False
+LOG = None
 
 # Utils
 def download(url, dest, attempt=1, checksum=None):
@@ -48,21 +54,31 @@ def download(url, dest, attempt=1, checksum=None):
             print("Would have downloaded {} ({}/{})".format(url, done, total), file=stderr)
         if checksum and done == total:
             if checksum != md5sum(os.path.join(ROOT, dest)):
+                if attempt >= 3:
+                    print("Could not verify {}".format(dest))
+                    return
                 attempt += 1
-                print("Could not verify {}, retrying (attempt {})".format(attempt), file=stderr)
+                print("Could not verify {}, retrying (attempt {})".format(dest, attempt), file=stderr)
                 return download(url, dest, attempt=attempt, checksum=checksum)
     except requests.exceptions.ConnectionError as e:
+        if VERBOSE:
+            print(format_exc())
+        if attempt >= 3:
+            print("Could not download {}".format(dest))
+            return
         attempt += 1
         print("Download failed, retrying (attempt {})".format(attempt), file=stderr)
         return download(url, dest, attempt=attempt, checksum=checksum)
 
 def mkdir(path):
     if DRYRUN:
-        print("Made directories for path " + path, file=stderr)
+        print("Would have made directories for path " + path, file=stderr)
         return
     try:
         makedirs(os.path.dirname(path))
     except FileExistsError:
+        if VERBOSE:
+            print(format_exc())
         pass
 
 def md5sum(filename):
@@ -77,6 +93,8 @@ def md5sum(filename):
                 hash.update(chunk)
         return hash.hexdigest()
     except FileNotFoundError:
+        if VERBOSE:
+            print(format_exc())
         return False
 
 def sizeof_fmt(num, suffix='B'):
@@ -115,15 +133,25 @@ def get_latest_zip(extract=True):
                         unlink(os.path.join(ROOT, latest, fn))
                         download(CDN + latest + fn, os.path.join(latest, fn), attempt=2, checksum=chk)
     except KeyboardInterrupt:
+        if VERBOSE:
+            print(format_exc())
         return False
     else:
         return True
+
+def check_files():
+    latest = requests.get(CDN + "latest").text.strip()
+    with open(os.path.join(ROOT, latest, latest[:-1] + ".exe")) as f:
+        pass
 
 def main():
     parser = ArgumentParser(prog="YandereLauncher")
     parser.add_argument("-d", "--dryrun", help="Don't change anything on the filesystem, just print what's going on", action="store_true")
     parser.add_argument("-s", "--cdn", help="Specify a different server URL, with trailing slash")
     parser.add_argument("-e", "--skip-extract", help="Skip extraction of zip", action="store_false")
+    parser.add_argument("-v", "--verbose", help="Print full traceback for all exceptions", action="store_true")
+    parser.add_argument("--redownload", help="Redownload game files (DELETES ALL DIRECTORIES AND ZIPS MATCHING YandereSim* IN CURRENT DIR)", action="store_true")
+    parser.add_argument("--gui", help="Show GUI", action="store_true")
     args = parser.parse_args()
     if args.cdn:
         global CDN
@@ -131,12 +159,50 @@ def main():
     if args.dryrun:
         global DRYRUN
         DRYRUN = True
-    if get_latest_zip(extract=args.skip_extract):
-        print("Download was successful")
-        return 0
+    if args.verbose:
+        global VERBOSE
+        VERBOSE = True
+    if args.redownload:
+        from glob import glob
+        for a in glob(os.path.join(ROOT, "YandereSim*")):
+            if os.path.isdir(a):
+                rmtree(a)
+            elif a[-4:] == ".zip":
+                unlink(a)
+    if args.gui:
+        from tkinter import Canvas, Tk, PhotoImage, Toplevel, Label
+        import base64
+        from subprocess import Popen
+        # init tkinter
+        root = Tk()
+        # debug
+        root.bind("<Motion>", lambda event: print("{}, {}".format(event.x, event.y)))
+        root.title("YandereLauncher")
+        # background image
+        with open("YandereLauncher.gif", "rb") as f:
+            photo = PhotoImage(data=base64.encodestring(f.read()))
+        cv = Canvas(width=635, height=355)
+        cv.pack(side='top', fill='both', expand='yes')
+        cv.create_image(0, 0, image=photo, anchor='nw')
+        # play button
+        def start_game(event):
+            # temp
+            tl = Toplevel()
+            label = Label(tl, text="And this is where I would launch \nmy game. IF I HAD ONE", height=10, width=30)
+            label.pack()
+#            root.destroy()
+        play = cv.create_rectangle(88, 260, 244, 323, fill="", outline="")
+        cv.tag_bind(play, "<ButtonPress-1>", start_game)
+#        close = tk.Button(window, command=lambda: root.destroy())
+#        close.pack(
+        root.mainloop()
     else:
-        print("Download was unsuccessful")
-        return 1
+        if get_latest_zip(extract=args.skip_extract):
+            print("Download was successful")
+            return 0
+        else:
+            print("Download was unsuccessful")
+            return 1
 
 if __name__ == "__main__":
     exit(main())
