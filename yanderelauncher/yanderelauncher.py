@@ -13,7 +13,7 @@ from os import getcwd, sep, walk, makedirs, unlink
 import os.path
 
 __author__ = "blha303 <stevensmith.ome@gmail.com>"
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 CDN = "https://yandere.b303.me/"
 ROOT = getcwd()
@@ -179,7 +179,7 @@ def main():
         root.bind("<Motion>", lambda event: print("{}, {}".format(event.x, event.y)))
         root.title("YandereLauncher")
         # background image
-        with open("YandereLauncher.gif", "rb") as f:
+        with open(os.path.join("img", "YandereLauncher.gif"), "rb") as f:
             photo = PhotoImage(data=base64.encodestring(f.read()))
         cv = Canvas(width=635, height=355)
         cv.pack(side='top', fill='both', expand='yes')
