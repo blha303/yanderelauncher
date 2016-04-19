@@ -13,7 +13,7 @@ from os import getcwd, sep, walk, makedirs, unlink
 import os.path
 
 __author__ = "blha303 <stevensmith.ome@gmail.com>"
-__version__ = "0.0.9"
+__version__ = "0.0.10"
 
 CDN = "https://yandere.b303.me/"
 ROOT = getcwd()
@@ -159,7 +159,7 @@ def main():
     parser.add_argument("-e", "--skip-extract", help="Skip extraction of zip", action="store_false")
     parser.add_argument("-v", "--verbose", help="Print full traceback for all exceptions", action="store_true")
     parser.add_argument("--redownload", help="Redownload game files (DELETES ALL DIRECTORIES AND ZIPS MATCHING YandereSim* IN CURRENT DIR)", action="store_true")
-    parser.add_argument("--gui", help="Show GUI", action="store_true")
+    parser.add_argument("--gui", help="Show GUI (defaults to true if frozen)", action="store_true")
     args = parser.parse_args()
     if args.cdn:
         global CDN
@@ -177,7 +177,7 @@ def main():
                 rmtree(a)
             elif a[-4:] == ".zip":
                 unlink(a)
-    if args.gui:
+    if getattr(sys, 'frozen', False) or args.gui:
         from tkinter import Canvas, Tk, PhotoImage, Toplevel, Label
         import base64
         from subprocess import Popen
