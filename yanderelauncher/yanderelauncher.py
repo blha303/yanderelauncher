@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import requests
+import sys
 from json import loads
 from hashlib import md5
-from sys import exit, stderr, stdout
 from argparse import ArgumentParser
 from zipfile import ZipFile
 from traceback import format_exc
@@ -13,7 +13,7 @@ from os import getcwd, sep, walk, makedirs, unlink
 import os.path
 
 __author__ = "blha303 <stevensmith.ome@gmail.com>"
-__version__ = "0.0.8"
+__version__ = "0.0.9"
 
 CDN = "https://yandere.b303.me/"
 ROOT = getcwd()
@@ -22,6 +22,14 @@ VERBOSE = False
 LOG = None
 
 # Utils
+def path_to(filename):
+    """ Checks if YandereLauncher is running from a bundled package or source, and
+        returns the path to the specified file """
+    if getattr(sys, 'frozen', False):
+        return os.path.join(sys._MEIPASS, filename)
+    else:
+        return os.path.join(ROOT, filename)
+
 def download(url, dest, attempt=1, checksum=None):
     try:
         with open(os.path.join(ROOT, dest), "rb") as f:
@@ -48,17 +56,17 @@ def download(url, dest, attempt=1, checksum=None):
                         f.write(chunk)
                     done += len(chunk)
                     if total:
-                        print("{0:.2f}% ({1}) of {2}       ".format((done / total) * 100, sizeof_fmt(done), sizeof_fmt(total)), end="\r", file=stderr)
+                        print("{0:.2f}% ({1}) of {2}       ".format((done / total) * 100, sizeof_fmt(done), sizeof_fmt(total)), end="\r", file=sys.stderr)
                 print()
         else:
-            print("Would have downloaded {} ({}/{})".format(url, done, total), file=stderr)
+            print("Would have downloaded {} ({}/{})".format(url, done, total), file=sys.stderr)
         if checksum and done == total:
             if checksum != md5sum(os.path.join(ROOT, dest)):
                 if attempt >= 3:
                     print("Could not verify {}".format(dest))
                     return
                 attempt += 1
-                print("Could not verify {}, retrying (attempt {})".format(dest, attempt), file=stderr)
+                print("Could not verify {}, retrying (attempt {})".format(dest, attempt), file=sys.stderr)
                 return download(url, dest, attempt=attempt, checksum=checksum)
     except requests.exceptions.ConnectionError as e:
         if VERBOSE:
@@ -67,12 +75,12 @@ def download(url, dest, attempt=1, checksum=None):
             print("Could not download {}".format(dest))
             return
         attempt += 1
-        print("Download failed, retrying (attempt {})".format(attempt), file=stderr)
+        print("Download failed, retrying (attempt {})".format(attempt), file=sys.stderr)
         return download(url, dest, attempt=attempt, checksum=checksum)
 
 def mkdir(path):
     if DRYRUN:
-        print("Would have made directories for path " + path, file=stderr)
+        print("Would have made directories for path " + path, file=sys.stderr)
         return
     try:
         makedirs(os.path.dirname(path))
@@ -113,23 +121,23 @@ def get_latest_zip(extract=True):
         checksum, filename = requests.get(CDN + "latest-checksum").text.strip().split(maxsplit=1)
         download(CDN + filename, filename)
         if checksum != md5sum(filename):
-            print("Package did not download successfully", file=stderr)
+            print("Package did not download successfully", file=sys.stderr)
             return False
         if extract:
             if DRYRUN:
-                print("Would have extracted the zip", file=stderr)
+                print("Would have extracted the zip", file=sys.stderr)
             else:
                 with ZipFile(filename, "r") as z:
-                    print("Extracting files, please be patient", file=stderr)
+                    print("Extracting files, please be patient", file=sys.stderr)
                     z.extractall(ROOT)
                 latest = requests.get(CDN + "latest").text.strip()
                 checksums = requests.get(CDN + latest + "checksums.json").json()
                 for fn, chk in checksums.items():
                     if chk != md5sum(os.path.join(ROOT, latest, fn)):
                         if DRYRUN:
-                            print("{} could not be verified, not redownloading".format(fn), file=stderr)
+                            print("{} could not be verified, not redownloading".format(fn), file=sys.stderr)
                             continue
-                        print("{} could not be verified, redownloading".format(fn), file=stderr)
+                        print("{} could not be verified, redownloading".format(fn), file=sys.stderr)
                         unlink(os.path.join(ROOT, latest, fn))
                         download(CDN + latest + fn, os.path.join(latest, fn), attempt=2, checksum=chk)
     except KeyboardInterrupt:
@@ -179,7 +187,7 @@ def main():
         root.bind("<Motion>", lambda event: print("{}, {}".format(event.x, event.y)))
         root.title("YandereLauncher")
         # background image
-        with open(os.path.join("img", "YandereLauncher.gif"), "rb") as f:
+        with open(path_to("YandereLauncher.gif"), "rb") as f:
             photo = PhotoImage(data=base64.encodestring(f.read()))
         cv = Canvas(width=635, height=355)
         cv.pack(side='top', fill='both', expand='yes')
@@ -205,4 +213,4 @@ def main():
             return 1
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())
