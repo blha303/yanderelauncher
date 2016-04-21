@@ -10,7 +10,7 @@ setup(
     entry_points = {
         "console_scripts": ['yanderelauncher = yanderelauncher.yanderelauncher:main']
         },
-    version = "0.1.1",
+    version = "0.1.2",
     description = "Utilizes a checksum system to download and verify files for Yandere Simulator",
     long_description = long_descr,
     author = "Steven Smith",

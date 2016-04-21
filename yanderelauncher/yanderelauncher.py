@@ -18,7 +18,7 @@ from os import getcwd, sep, walk, makedirs, unlink, getenv
 import os.path
 
 __author__ = "blha303 <stevensmith.ome@gmail.com>"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 CDN = "https://yandere.b303.me/"
 ROOT = getcwd()
@@ -217,7 +217,7 @@ def main():
         cv.tag_bind(play, "<ButtonPress-1>", start_game)
 
         update = cv.create_rectangle(400, 260, 555, 323, fill="", outline="")
-        cv.tag_bind(update, "<ButtonPress-1>", lambda: Thread(target=get_latest_zip))
+        cv.tag_bind(update, "<ButtonPress-1>", lambda event: Thread(target=get_latest_zip))
 
         global GUI_LOGSTR
         GUI_LOGSTR = (cv, cv.create_text(166, 199, text="Ready to update...", width=311, justify=CENTER, anchor=NW))
