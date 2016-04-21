@@ -9,19 +9,38 @@ from traceback import format_exc
 from shutil import rmtree
 from tempfile import NamedTemporaryFile
 from time import ctime
-from os import getcwd, sep, walk, makedirs, unlink
+from tkinter import Canvas, Tk, PhotoImage, Toplevel, CENTER, NW
+import base64
+from subprocess import Popen
+from glob import glob
+from os import getcwd, sep, walk, makedirs, unlink, getenv
 import os.path
 
 __author__ = "blha303 <stevensmith.ome@gmail.com>"
-__version__ = "0.0.10"
+__version__ = "0.1.0"
 
 CDN = "https://yandere.b303.me/"
 ROOT = getcwd()
 DRYRUN = False
 VERBOSE = False
-LOG = None
+GUI_LOGSTR = None
+
+console_log = print
 
 # Utils
+def getcfg():
+    if sys.platform[:3] == "win":
+        return getenv("APPDATA") + sep + "YandereLauncher.cfg"
+    elif sys.platform == "darwin":
+        return getenv("PWD") + "/Library/YandereLauncher.cfg"
+    else:
+        return getenv("PWD") + "/.YandereLauncher.cfg"
+
+def print(text, end=None, file=None):
+    if GUI_LOGSTR:
+        GUI_LOGSTR[0].itemconfig(GUI_LOGSTR[1], text=text)
+    console_log(text, end=end, file=file)
+
 def path_to(filename):
     """ Checks if YandereLauncher is running from a bundled package or source, and
         returns the path to the specified file """
@@ -140,17 +159,15 @@ def get_latest_zip(extract=True):
                         print("{} could not be verified, redownloading".format(fn), file=sys.stderr)
                         unlink(os.path.join(ROOT, latest, fn))
                         download(CDN + latest + fn, os.path.join(latest, fn), attempt=2, checksum=chk)
+                with open(getcfg(), "w") as f:
+                    exe = glob(os.path.join(ROOT, latest, "*.exe"))[0]
+                    f.write(exe)
     except KeyboardInterrupt:
         if VERBOSE:
             print(format_exc())
         return False
     else:
         return True
-
-def check_files():
-    latest = requests.get(CDN + "latest").text.strip()
-    with open(os.path.join(ROOT, latest, latest[:-1] + ".exe")) as f:
-        pass
 
 def main():
     parser = ArgumentParser(prog="YandereLauncher")
@@ -178,31 +195,35 @@ def main():
             elif a[-4:] == ".zip":
                 unlink(a)
     if getattr(sys, 'frozen', False) or args.gui:
-        from tkinter import Canvas, Tk, PhotoImage, Toplevel, Label
-        import base64
-        from subprocess import Popen
         # init tkinter
         root = Tk()
-        # debug
-        root.bind("<Motion>", lambda event: print("{}, {}".format(event.x, event.y)))
         root.title("YandereLauncher")
         # background image
+
         with open(path_to("YandereLauncher.gif"), "rb") as f:
             photo = PhotoImage(data=base64.encodestring(f.read()))
         cv = Canvas(width=635, height=355)
         cv.pack(side='top', fill='both', expand='yes')
-        cv.create_image(0, 0, image=photo, anchor='nw')
-        # play button
+        cv.create_image(0, 0, image=photo, anchor=NW)
         def start_game(event):
-            # temp
-            tl = Toplevel()
-            label = Label(tl, text="And this is where I would launch \nmy game. IF I HAD ONE", height=10, width=30)
-            label.pack()
-#            root.destroy()
+            try:
+                with open(getcfg()) as f:
+                    Popen(["start", f.read()])
+            except:
+                print("You need to run an update")
+
         play = cv.create_rectangle(88, 260, 244, 323, fill="", outline="")
         cv.tag_bind(play, "<ButtonPress-1>", start_game)
-#        close = tk.Button(window, command=lambda: root.destroy())
-#        close.pack(
+
+        update = cv.create_rectangle(400, 260, 555, 323, fill="", outline="")
+        cv.tag_bind(update, "<ButtonPress-1>", get_latest_zip)
+
+        global GUI_LOGSTR
+        GUI_LOGSTR = (cv, cv.create_text(166, 199, text="Ready to update...", width=311, justify=CENTER, anchor=NW))
+
+#        close = cv.create_rectangle(622, 5, 640, 22, fill="", outline="")
+#        cv.tag_bind(close, "<ButtonPress-1>", lambda root=root:root.destroy())
+
         root.mainloop()
     else:
         if get_latest_zip(extract=args.skip_extract):
